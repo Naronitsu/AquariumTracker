@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+
 import '../models/aquarium.dart';
 import '../models/fish.dart';
 import '../models/water_parameters.dart';
@@ -14,6 +17,17 @@ class AquariumDetailScreen extends StatefulWidget {
 }
 
 class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
+  Future<void> _takePicture() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.camera);
+
+    if (pickedFile != null) {
+      setState(() {
+        widget.aquarium.imagePath = pickedFile.path;
+      });
+    }
+  }
+
   void _confirmDeleteAquarium() {
     showDialog(
       context: context,
@@ -28,8 +42,8 @@ class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
           TextButton(
             onPressed: () {
               widget.onDelete(widget.aquarium);
-              Navigator.pop(context); // close dialog
-              Navigator.pop(context); // go back to previous screen
+              Navigator.pop(context);
+              Navigator.pop(context);
             },
             child: const Text('Delete', style: TextStyle(color: Colors.red)),
           ),
@@ -44,83 +58,70 @@ class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
     final _qtyController = TextEditingController();
     final _commentController = TextEditingController();
     String _selectedSex = 'Unknown';
-    final List<String> _sexOptions = ['Male', 'Female', 'Unknown'];
 
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Add Fish'),
-          content: Form(
-            key: _formKey,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextFormField(
-                    controller: _nameController,
-                    decoration: const InputDecoration(labelText: 'Fish Name'),
-                    validator: (value) => value == null || value.trim().isEmpty ? 'Name is required' : null,
-                  ),
-                  TextFormField(
-                    controller: _qtyController,
-                    decoration: const InputDecoration(labelText: 'Quantity'),
-                    keyboardType: TextInputType.number,
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Quantity is required';
-                      }
-                      final number = int.tryParse(value);
-                      if (number == null || number < 1) {
-                        return 'Enter a valid number';
-                      }
-                      return null;
-                    },
-                  ),
-                  DropdownButtonFormField<String>(
-                    value: _selectedSex,
-                    items: _sexOptions.map((sex) {
-                      return DropdownMenuItem(
-                        value: sex,
-                        child: Text(sex),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      _selectedSex = value ?? 'Unknown';
-                    },
-                    decoration: const InputDecoration(labelText: 'Sex'),
-                  ),
-                  TextFormField(
-                    controller: _commentController,
-                    decoration: const InputDecoration(labelText: 'Comments / Notes'),
-                    maxLines: 2,
-                  ),
-                ],
-              ),
+      builder: (_) => AlertDialog(
+        title: const Text('Add Fish'),
+        content: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(labelText: 'Fish Name'),
+                  validator: (value) => value == null || value.trim().isEmpty ? 'Required' : null,
+                ),
+                TextFormField(
+                  controller: _qtyController,
+                  decoration: const InputDecoration(labelText: 'Quantity'),
+                  keyboardType: TextInputType.number,
+                  validator: (value) {
+                    final n = int.tryParse(value ?? '');
+                    if (n == null || n < 1) return 'Enter valid number';
+                    return null;
+                  },
+                ),
+                DropdownButtonFormField<String>(
+                  value: _selectedSex,
+                  items: ['Male', 'Female', 'Unknown']
+                      .map((s) => DropdownMenuItem<String>(value: s, child: Text(s)))
+                      .toList(),
+                  onChanged: (val) => _selectedSex = val ?? 'Unknown',
+                  decoration: const InputDecoration(labelText: 'Sex'),
+                ),
+                TextFormField(
+                  controller: _commentController,
+                  decoration: const InputDecoration(labelText: 'Note'),
+                  maxLines: 2,
+                ),
+              ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                if (_formKey.currentState!.validate()) {
-                  setState(() {
-                    widget.aquarium.fishInventory.add(
-                      Fish(
-                        name: _nameController.text,
-                        quantity: int.tryParse(_qtyController.text) ?? 1,
-                        sex: _selectedSex,
-                        comment: _commentController.text,
-                      ),
-                    );
-                  });
-                  Navigator.pop(context);
-                }
-              },
-              child: const Text('Add'),
-            ),
-          ],
-        );
-      },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              if (_formKey.currentState!.validate()) {
+                setState(() {
+                  widget.aquarium.fishInventory.add(
+                    Fish(
+                      name: _nameController.text,
+                      quantity: int.parse(_qtyController.text),
+                      sex: _selectedSex,
+                      comment: _commentController.text,
+                    ),
+                  );
+                });
+                Navigator.pop(context);
+              }
+            },
+            child: const Text('Add'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -130,86 +131,73 @@ class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
     final _qtyController = TextEditingController(text: fish.quantity.toString());
     final _commentController = TextEditingController(text: fish.comment);
     String _selectedSex = fish.sex;
-    final List<String> _sexOptions = ['Male', 'Female', 'Unknown'];
 
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Edit Fish'),
-          content: Form(
-            key: _formKey,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextFormField(
-                    controller: _nameController,
-                    decoration: const InputDecoration(labelText: 'Fish Name'),
-                    validator: (value) => value == null || value.trim().isEmpty ? 'Name is required' : null,
-                  ),
-                  TextFormField(
-                    controller: _qtyController,
-                    decoration: const InputDecoration(labelText: 'Quantity'),
-                    keyboardType: TextInputType.number,
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Quantity is required';
-                      }
-                      final number = int.tryParse(value);
-                      if (number == null || number < 1) {
-                        return 'Enter a valid number';
-                      }
-                      return null;
-                    },
-                  ),
-                  DropdownButtonFormField<String>(
-                    value: _selectedSex,
-                    items: _sexOptions.map((sex) {
-                      return DropdownMenuItem(
-                        value: sex,
-                        child: Text(sex),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      _selectedSex = value ?? 'Unknown';
-                    },
-                    decoration: const InputDecoration(labelText: 'Sex'),
-                  ),
-                  TextFormField(
-                    controller: _commentController,
-                    decoration: const InputDecoration(labelText: 'Comments / Notes'),
-                    maxLines: 2,
-                  ),
-                ],
-              ),
+      builder: (_) => AlertDialog(
+        title: const Text('Edit Fish'),
+        content: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(labelText: 'Fish Name'),
+                  validator: (value) => value == null || value.trim().isEmpty ? 'Required' : null,
+                ),
+                TextFormField(
+                  controller: _qtyController,
+                  decoration: const InputDecoration(labelText: 'Quantity'),
+                  keyboardType: TextInputType.number,
+                  validator: (value) {
+                    final n = int.tryParse(value ?? '');
+                    if (n == null || n < 1) return 'Enter valid number';
+                    return null;
+                  },
+                ),
+                DropdownButtonFormField<String>(
+                  value: _selectedSex,
+                  items: ['Male', 'Female', 'Unknown']
+                      .map((s) => DropdownMenuItem<String>(value: s, child: Text(s)))
+                      .toList(),
+                  onChanged: (val) => _selectedSex = val ?? 'Unknown',
+                  decoration: const InputDecoration(labelText: 'Sex'),
+                ),
+                TextFormField(
+                  controller: _commentController,
+                  decoration: const InputDecoration(labelText: 'Note'),
+                  maxLines: 2,
+                ),
+              ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                if (_formKey.currentState!.validate()) {
-                  setState(() {
-                    widget.aquarium.fishInventory[index] = Fish(
-                      name: _nameController.text,
-                      quantity: int.tryParse(_qtyController.text) ?? 1,
-                      sex: _selectedSex,
-                      comment: _commentController.text,
-                    );
-                  });
-                  Navigator.pop(context);
-                }
-              },
-              child: const Text('Save'),
-            ),
-          ],
-        );
-      },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              if (_formKey.currentState!.validate()) {
+                setState(() {
+                  widget.aquarium.fishInventory[index] = Fish(
+                    name: _nameController.text,
+                    quantity: int.parse(_qtyController.text),
+                    sex: _selectedSex,
+                    comment: _commentController.text,
+                  );
+                });
+                Navigator.pop(context);
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
     );
   }
 
   void _editWaterParams() {
-    final params = widget.aquarium.waterParameters ?? WaterParameters(
+    final w = widget.aquarium.waterParameters ?? WaterParameters(
       ph: 0,
       nitrate: 0,
       nitrite: 0,
@@ -218,51 +206,47 @@ class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
       temperature: 0,
     );
 
-    final _controllers = {
-      'pH': TextEditingController(text: params.ph.toString()),
-      'Nitrate': TextEditingController(text: params.nitrate.toString()),
-      'Nitrite': TextEditingController(text: params.nitrite.toString()),
-      'Ammonia': TextEditingController(text: params.ammonia.toString()),
-      'GH': TextEditingController(text: params.generalHardness.toString()),
-      'Temp': TextEditingController(text: params.temperature.toString()),
+    final controllers = {
+      'pH': TextEditingController(text: w.ph.toString()),
+      'Nitrate': TextEditingController(text: w.nitrate.toString()),
+      'Nitrite': TextEditingController(text: w.nitrite.toString()),
+      'Ammonia': TextEditingController(text: w.ammonia.toString()),
+      'GH': TextEditingController(text: w.generalHardness.toString()),
+      'Temp': TextEditingController(text: w.temperature.toString()),
     };
 
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Edit Water Parameters'),
-          content: SingleChildScrollView(
-            child: Column(
-              children: _controllers.entries.map((entry) {
-                return TextField(
-                  controller: entry.value,
-                  decoration: InputDecoration(labelText: entry.key),
-                  keyboardType: TextInputType.number,
-                );
-              }).toList(),
-            ),
+      builder: (_) => AlertDialog(
+        title: const Text('Edit Water Parameters'),
+        content: SingleChildScrollView(
+          child: Column(
+            children: controllers.entries.map((e) => TextField(
+              controller: e.value,
+              decoration: InputDecoration(labelText: e.key),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            )).toList(),
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  widget.aquarium.waterParameters = WaterParameters(
-                    ph: double.tryParse(_controllers['pH']!.text) ?? 0,
-                    nitrate: double.tryParse(_controllers['Nitrate']!.text) ?? 0,
-                    nitrite: double.tryParse(_controllers['Nitrite']!.text) ?? 0,
-                    ammonia: double.tryParse(_controllers['Ammonia']!.text) ?? 0,
-                    generalHardness: double.tryParse(_controllers['GH']!.text) ?? 0,
-                    temperature: double.tryParse(_controllers['Temp']!.text) ?? 0,
-                  );
-                });
-                Navigator.pop(context);
-              },
-              child: const Text('Save'),
-            ),
-          ],
-        );
-      },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              setState(() {
+                widget.aquarium.waterParameters = WaterParameters(
+                  ph: double.tryParse(controllers['pH']!.text) ?? 0,
+                  nitrate: double.tryParse(controllers['Nitrate']!.text) ?? 0,
+                  nitrite: double.tryParse(controllers['Nitrite']!.text) ?? 0,
+                  ammonia: double.tryParse(controllers['Ammonia']!.text) ?? 0,
+                  generalHardness: double.tryParse(controllers['GH']!.text) ?? 0,
+                  temperature: double.tryParse(controllers['Temp']!.text) ?? 0,
+                );
+              });
+              Navigator.pop(context);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -282,11 +266,23 @@ class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
         ],
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: ListView(
           children: [
+            if (widget.aquarium.imagePath != null && File(widget.aquarium.imagePath!).existsSync())
+              Image.file(
+                File(widget.aquarium.imagePath!),
+                height: 200,
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
+            TextButton.icon(
+              onPressed: _takePicture,
+              icon: const Icon(Icons.camera_alt),
+              label: const Text('Take Photo'),
+            ),
+            const SizedBox(height: 8),
             Text('Room: ${widget.aquarium.roomLocation}'),
-            const SizedBox(height: 10),
             Text(
               'Volume: ${widget.aquarium.volumeInLitres.toStringAsFixed(1)} L',
               style: const TextStyle(fontWeight: FontWeight.bold),

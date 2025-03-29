@@ -9,7 +9,8 @@ class Aquarium {
   double heightCm;
   List<Fish> fishInventory;
   WaterParameters? waterParameters;
-  String? imagePath; // ✅ ADD THIS LINE
+  String? imagePath;
+
 
   Aquarium({
     required this.name,
@@ -19,11 +20,10 @@ class Aquarium {
     required this.heightCm,
     this.fishInventory = const [],
     this.waterParameters,
-    this.imagePath, // ✅ INCLUDE THIS IN CONSTRUCTOR
+    this.imagePath,
   });
 
   double get volumeInCm3 => lengthCm * widthCm * heightCm;
-
   double get volumeInLitres => volumeInCm3 / 1000;
 }
 

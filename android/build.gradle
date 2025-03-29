@@ -1,3 +1,17 @@
+buildscript {
+ext {
+        kotlin_version = '1.8.0'
+    }
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.2.2'  // Android Gradle Plugin version
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.6.21' // If you're using Kotlin
+    }
+}
+
 allprojects {
     repositories {
         google()
