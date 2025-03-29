@@ -14,6 +14,7 @@ class AquariumDetailScreen extends StatefulWidget {
 
 class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
   void _addFish() {
+    final _formKey = GlobalKey<FormState>();
     final _nameController = TextEditingController();
     final _qtyController = TextEditingController();
     final _commentController = TextEditingController();
@@ -25,54 +26,70 @@ class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
       builder: (context) {
         return AlertDialog(
           title: const Text('Add Fish'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(labelText: 'Fish Name'),
-                ),
-                TextField(
-                  controller: _qtyController,
-                  decoration: const InputDecoration(labelText: 'Quantity'),
-                  keyboardType: TextInputType.number,
-                ),
-                DropdownButtonFormField<String>(
-                  value: _selectedSex,
-                  items: _sexOptions.map((sex) {
-                    return DropdownMenuItem(
-                      value: sex,
-                      child: Text(sex),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    _selectedSex = value ?? 'Unknown';
-                  },
-                  decoration: const InputDecoration(labelText: 'Sex'),
-                ),
-                TextField(
-                  controller: _commentController,
-                  decoration: const InputDecoration(labelText: 'Comments / Notes'),
-                  maxLines: 2,
-                ),
-              ],
+          content: Form(
+            key: _formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: _nameController,
+                    decoration: const InputDecoration(labelText: 'Fish Name'),
+                    validator: (value) => value == null || value.trim().isEmpty ? 'Name is required' : null,
+                  ),
+                  TextFormField(
+                    controller: _qtyController,
+                    decoration: const InputDecoration(labelText: 'Quantity'),
+                    keyboardType: TextInputType.number,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Quantity is required';
+                      }
+                      final number = int.tryParse(value);
+                      if (number == null || number < 1) {
+                        return 'Enter a valid number';
+                      }
+                      return null;
+                    },
+                  ),
+                  DropdownButtonFormField<String>(
+                    value: _selectedSex,
+                    items: _sexOptions.map((sex) {
+                      return DropdownMenuItem(
+                        value: sex,
+                        child: Text(sex),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      _selectedSex = value ?? 'Unknown';
+                    },
+                    decoration: const InputDecoration(labelText: 'Sex'),
+                  ),
+                  TextFormField(
+                    controller: _commentController,
+                    decoration: const InputDecoration(labelText: 'Comments / Notes'),
+                    maxLines: 2,
+                  ),
+                ],
+              ),
             ),
           ),
           actions: [
             TextButton(
               onPressed: () {
-                setState(() {
-                  widget.aquarium.fishInventory.add(
-                    Fish(
-                      name: _nameController.text,
-                      quantity: int.tryParse(_qtyController.text) ?? 1,
-                      sex: _selectedSex,
-                      comment: _commentController.text,
-                    ),
-                  );
-                });
-                Navigator.pop(context);
+                if (_formKey.currentState!.validate()) {
+                  setState(() {
+                    widget.aquarium.fishInventory.add(
+                      Fish(
+                        name: _nameController.text,
+                        quantity: int.tryParse(_qtyController.text) ?? 1,
+                        sex: _selectedSex,
+                        comment: _commentController.text,
+                      ),
+                    );
+                  });
+                  Navigator.pop(context);
+                }
               },
               child: const Text('Add'),
             ),
@@ -82,24 +99,114 @@ class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
     );
   }
 
-  void _editWaterParams() {
-    final params = widget.aquarium.waterParameters ??
-        WaterParameters(
-          ph: 0,
-          nitrate: 0,
-          nitrite: 0,
-          ammonia: 0,
-          generalHardness: 0,
-          temperature: 0,
+  void _editFish(int index, Fish fish) {
+    final _formKey = GlobalKey<FormState>();
+    final _nameController = TextEditingController(text: fish.name);
+    final _qtyController = TextEditingController(text: fish.quantity.toString());
+    final _commentController = TextEditingController(text: fish.comment);
+    String _selectedSex = fish.sex;
+    final List<String> _sexOptions = ['Male', 'Female', 'Unknown'];
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Edit Fish'),
+          content: Form(
+            key: _formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: _nameController,
+                    decoration: const InputDecoration(labelText: 'Fish Name'),
+                    validator: (value) => value == null || value.trim().isEmpty ? 'Name is required' : null,
+                  ),
+                  TextFormField(
+                    controller: _qtyController,
+                    decoration: const InputDecoration(labelText: 'Quantity'),
+                    keyboardType: TextInputType.number,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Quantity is required';
+                      }
+                      final number = int.tryParse(value);
+                      if (number == null || number < 1) {
+                        return 'Enter a valid number';
+                      }
+                      return null;
+                    },
+                  ),
+                  DropdownButtonFormField<String>(
+                    value: _selectedSex,
+                    items: _sexOptions.map((sex) {
+                      return DropdownMenuItem(
+                        value: sex,
+                        child: Text(sex),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      _selectedSex = value ?? 'Unknown';
+                    },
+                    decoration: const InputDecoration(labelText: 'Sex'),
+                  ),
+                  TextFormField(
+                    controller: _commentController,
+                    decoration: const InputDecoration(labelText: 'Comments / Notes'),
+                    maxLines: 2,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                if (_formKey.currentState!.validate()) {
+                  setState(() {
+                    widget.aquarium.fishInventory[index] = Fish(
+                      name: _nameController.text,
+                      quantity: int.tryParse(_qtyController.text) ?? 1,
+                      sex: _selectedSex,
+                      comment: _commentController.text,
+                    );
+                  });
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
         );
+      },
+    );
+  }
+
+  void _editWaterParams() {
+    final params = widget.aquarium.waterParameters ?? WaterParameters(
+      ph: 0,
+      nitrate: 0,
+      nitrite: 0,
+      ammonia: 0,
+      generalHardness: 0,
+      temperature: 0,
+    );
+
+    final _ph = params.ph;
+    final _nitrate = params.nitrate;
+    final _nitrite = params.nitrite;
+    final _ammonia = params.ammonia;
+    final _gh = params.generalHardness;
+    final _temp = params.temperature;
 
     final _controllers = {
-      'pH': TextEditingController(text: params.ph.toString()),
-      'Nitrate': TextEditingController(text: params.nitrate.toString()),
-      'Nitrite': TextEditingController(text: params.nitrite.toString()),
-      'Ammonia': TextEditingController(text: params.ammonia.toString()),
-      'GH': TextEditingController(text: params.generalHardness.toString()),
-      'Temp': TextEditingController(text: params.temperature.toString()),
+      'pH': TextEditingController(text: _ph.toString()),
+      'Nitrate': TextEditingController(text: _nitrate.toString()),
+      'Nitrite': TextEditingController(text: _nitrite.toString()),
+      'Ammonia': TextEditingController(text: _ammonia.toString()),
+      'GH': TextEditingController(text: _gh.toString()),
+      'Temp': TextEditingController(text: _temp.toString()),
     };
 
     showDialog(
@@ -112,7 +219,10 @@ class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
               children: _controllers.entries.map((entry) {
                 return TextField(
                   controller: entry.value,
-                  decoration: InputDecoration(labelText: entry.key),
+                  decoration: InputDecoration(
+                    labelText: entry.key,
+                    hintText: 'Current: ${entry.value.text}',
+                  ),
                   keyboardType: TextInputType.number,
                 );
               }).toList(),
@@ -155,8 +265,7 @@ class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
             Text('Room: ${widget.aquarium.roomLocation}'),
             const SizedBox(height: 10),
             Text(
-              'Volume: ${widget.aquarium.volumeInLitres.toStringAsFixed(1)} L '
-              '(${widget.aquarium.volumeInCm3.toStringAsFixed(0)} cm³)',
+              'Volume: ${widget.aquarium.volumeInLitres.toStringAsFixed(1)}L',
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             const Divider(height: 30),
@@ -182,7 +291,25 @@ class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
                 onPressed: _addFish,
               ),
             ),
-            ...fish.map((f) => ListTile(
+            ...fish.asMap().entries.map((entry) {
+              final index = entry.key;
+              final f = entry.value;
+
+              return Dismissible(
+                key: UniqueKey(),
+                direction: DismissDirection.endToStart,
+                background: Container(
+                  color: Colors.red,
+                  alignment: Alignment.centerRight,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: const Icon(Icons.delete, color: Colors.white),
+                ),
+                onDismissed: (_) {
+                  setState(() {
+                    widget.aquarium.fishInventory.removeAt(index);
+                  });
+                },
+                child: ListTile(
                   title: Text(f.name),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -192,7 +319,10 @@ class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
                     ],
                   ),
                   trailing: Text('x${f.quantity}'),
-                )),
+                  onTap: () => _editFish(index, f),
+                ),
+              );
+            }),
           ],
         ),
       ),

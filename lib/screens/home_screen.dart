@@ -51,14 +51,36 @@ class _HomeScreenState extends State<HomeScreen> {
               itemCount: _aquariums.length,
               itemBuilder: (context, index) {
                 final aquarium = _aquariums[index];
-                return Card(
-                  child: ListTile(
-                    title: Text(aquarium.name),
-                    subtitle: Text(
-                      '${aquarium.roomLocation} • ${aquarium.volumeInLitres.toStringAsFixed(1)} L',
+
+                return Dismissible(
+                  key: ValueKey(aquarium),
+                  direction: DismissDirection.endToStart,
+                  background: Container(
+                    color: Colors.red,
+                    alignment: Alignment.centerRight,
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: const Icon(Icons.delete, color: Colors.white),
+                  ),
+                  onDismissed: (direction) {
+                    setState(() {
+                      _aquariums.removeAt(index);
+                    });
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('${aquarium.name} deleted'),
+                      ),
+                    );
+                  },
+                  child: Card(
+                    child: ListTile(
+                      title: Text(aquarium.name),
+                      subtitle: Text(
+                        '${aquarium.roomLocation} • ${aquarium.volumeInLitres.toStringAsFixed(1)} L',
+                      ),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => _openAquariumDetail(aquarium),
                     ),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => _openAquariumDetail(aquarium),
                   ),
                 );
               },
