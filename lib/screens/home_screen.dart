@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
+
 import '../models/aquarium.dart';
 import 'add_aquarium_screen.dart';
 import 'aquarium_detail_screen.dart';
@@ -32,7 +34,15 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => AquariumDetailScreen(aquarium: aquarium),
+        builder: (_) => AquariumDetailScreen(
+          aquarium: aquarium,
+          onDelete: (deletedAquarium) {
+            setState(() {
+              _aquariums.remove(deletedAquarium);
+            });
+            Navigator.pop(context); // Close detail screen
+          },
+        ),
       ),
     );
   }
@@ -61,19 +71,26 @@ class _HomeScreenState extends State<HomeScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: const Icon(Icons.delete, color: Colors.white),
                   ),
-                  onDismissed: (direction) {
+                  onDismissed: (_) {
                     setState(() {
                       _aquariums.removeAt(index);
                     });
 
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('${aquarium.name} deleted'),
-                      ),
+                      SnackBar(content: Text('${aquarium.name} deleted')),
                     );
                   },
                   child: Card(
                     child: ListTile(
+                      leading: aquarium.imagePath != null &&
+                              File(aquarium.imagePath!).existsSync()
+                          ? Image.file(
+                              File(aquarium.imagePath!),
+                              width: 50,
+                              height: 50,
+                              fit: BoxFit.cover,
+                            )
+                          : const Icon(Icons.image_outlined),
                       title: Text(aquarium.name),
                       subtitle: Text(
                         '${aquarium.roomLocation} • ${aquarium.volumeInLitres.toStringAsFixed(1)} L',
