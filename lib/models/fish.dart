@@ -10,4 +10,5 @@ class Fish {
     this.sex = 'Unknown',
     this.comment = '',
   });
+
 }

@@ -5,14 +5,39 @@ import '../models/water_parameters.dart';
 
 class AquariumDetailScreen extends StatefulWidget {
   final Aquarium aquarium;
+  final Function(Aquarium) onDelete;
 
-  const AquariumDetailScreen({super.key, required this.aquarium});
+  const AquariumDetailScreen({super.key, required this.aquarium, required this.onDelete});
 
   @override
   State<AquariumDetailScreen> createState() => _AquariumDetailScreenState();
 }
 
 class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
+  void _confirmDeleteAquarium() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Aquarium'),
+        content: const Text('Are you sure you want to delete this aquarium?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              widget.onDelete(widget.aquarium);
+              Navigator.pop(context); // close dialog
+              Navigator.pop(context); // go back to previous screen
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _addFish() {
     final _formKey = GlobalKey<FormState>();
     final _nameController = TextEditingController();
@@ -193,20 +218,13 @@ class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
       temperature: 0,
     );
 
-    final _ph = params.ph;
-    final _nitrate = params.nitrate;
-    final _nitrite = params.nitrite;
-    final _ammonia = params.ammonia;
-    final _gh = params.generalHardness;
-    final _temp = params.temperature;
-
     final _controllers = {
-      'pH': TextEditingController(text: _ph.toString()),
-      'Nitrate': TextEditingController(text: _nitrate.toString()),
-      'Nitrite': TextEditingController(text: _nitrite.toString()),
-      'Ammonia': TextEditingController(text: _ammonia.toString()),
-      'GH': TextEditingController(text: _gh.toString()),
-      'Temp': TextEditingController(text: _temp.toString()),
+      'pH': TextEditingController(text: params.ph.toString()),
+      'Nitrate': TextEditingController(text: params.nitrate.toString()),
+      'Nitrite': TextEditingController(text: params.nitrite.toString()),
+      'Ammonia': TextEditingController(text: params.ammonia.toString()),
+      'GH': TextEditingController(text: params.generalHardness.toString()),
+      'Temp': TextEditingController(text: params.temperature.toString()),
     };
 
     showDialog(
@@ -219,10 +237,7 @@ class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
               children: _controllers.entries.map((entry) {
                 return TextField(
                   controller: entry.value,
-                  decoration: InputDecoration(
-                    labelText: entry.key,
-                    hintText: 'Current: ${entry.value.text}',
-                  ),
+                  decoration: InputDecoration(labelText: entry.key),
                   keyboardType: TextInputType.number,
                 );
               }).toList(),
@@ -257,7 +272,15 @@ class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
     final water = widget.aquarium.waterParameters;
 
     return Scaffold(
-      appBar: AppBar(title: Text(widget.aquarium.name)),
+      appBar: AppBar(
+        title: Text(widget.aquarium.name),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete),
+            onPressed: _confirmDeleteAquarium,
+          ),
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: ListView(
@@ -265,7 +288,7 @@ class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
             Text('Room: ${widget.aquarium.roomLocation}'),
             const SizedBox(height: 10),
             Text(
-              'Volume: ${widget.aquarium.volumeInLitres.toStringAsFixed(1)}L',
+              'Volume: ${widget.aquarium.volumeInLitres.toStringAsFixed(1)} L',
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             const Divider(height: 30),
