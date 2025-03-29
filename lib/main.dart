@@ -1,20 +1,22 @@
 import 'package:flutter/material.dart';
+import 'screens/home_screen.dart';
 
 void main() {
-  runApp(const MainApp());
+  runApp(const AquariumApp());
 }
 
-class MainApp extends StatelessWidget {
-  const MainApp({super.key});
+class AquariumApp extends StatelessWidget {
+  const AquariumApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: Text('Hello World!'),
-        ),
+    return MaterialApp(
+      title: 'Aquarium Tracker',
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
+        useMaterial3: true,
       ),
+      home: const HomeScreen(),
     );
   }
 }
