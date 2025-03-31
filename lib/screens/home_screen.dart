@@ -1,110 +1,122 @@
+// ✅ FILE 1: home_screen.dart
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'dart:io';
-
+import 'package:firebase_core/firebase_core.dart';
+import 'add_aquarium_screen.dart' as add_screen;
+import 'aquarium_detail_screen.dart' as detail_screen;
 import '../models/aquarium.dart';
-import 'add_aquarium_screen.dart';
-import 'aquarium_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  _HomeScreenState createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final List<Aquarium> _aquariums = [];
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  void _addAquarium(Aquarium newAquarium) {
-    setState(() {
-      _aquariums.add(newAquarium);
-    });
+  @override
+  void initState() {
+    super.initState();
+    _initializeFirebase();
   }
 
-  void _navigateToAddAquarium() {
+  Future<void> _initializeFirebase() async {
+    await Firebase.initializeApp();
+    print("Firebase Initialized");
+  }
+
+  void _navigateToAddAquariumScreen() {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => AddAquariumScreen(onAdd: _addAquarium),
-      ),
-    );
-  }
-
-  void _openAquariumDetail(Aquarium aquarium) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => AquariumDetailScreen(
-          aquarium: aquarium,
-          onDelete: (deletedAquarium) {
-            setState(() {
-              _aquariums.remove(deletedAquarium);
-            });
-            Navigator.pop(context); // Close detail screen
-          },
+        builder: (context) => add_screen.AddAquariumScreen(
+          onAdd: _onAquariumAdded,
         ),
       ),
     );
   }
 
+  Future<void> _onAquariumAdded(Aquarium aquarium) async {
+    setState(() {});
+  }
+
+  void _navigateToDetailScreen(String aquariumId, Map<String, dynamic> aquarium) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => detail_screen.AquariumDetailScreen(
+          aquariumId: aquariumId,
+          aquarium: aquarium,
+          onDelete: _onAquariumDeleted,
+          onAdd: _onAquariumAdded,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _onAquariumDeleted(String aquariumId) async {
+    try {
+      await _firestore.collection('aquariums').doc(aquariumId).delete();
+      setState(() {});
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Failed to delete aquarium: $e")));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Aquarium Tracker'),
-      ),
-      body: _aquariums.isEmpty
-          ? const Center(
-              child: Text('No aquariums yet. Tap + to add one.'),
-            )
-          : ListView.builder(
-              itemCount: _aquariums.length,
-              itemBuilder: (context, index) {
-                final aquarium = _aquariums[index];
-
-                return Dismissible(
-                  key: ValueKey(aquarium),
-                  direction: DismissDirection.endToStart,
-                  background: Container(
-                    color: Colors.red,
-                    alignment: Alignment.centerRight,
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: const Icon(Icons.delete, color: Colors.white),
-                  ),
-                  onDismissed: (_) {
-                    setState(() {
-                      _aquariums.removeAt(index);
-                    });
-
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('${aquarium.name} deleted')),
+      appBar: AppBar(title: const Text('Aquarium Tracker')),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 20),
+              Expanded(
+                child: StreamBuilder<QuerySnapshot>(
+                  stream: _firestore.collection('aquariums').snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (snapshot.hasError) {
+                      return const Center(child: Text('Something went wrong'));
+                    }
+                    final aquariums = snapshot.data?.docs ?? [];
+                    if (aquariums.isEmpty) {
+                      return const Center(child: Text('No aquariums available.'));
+                    }
+                    return ListView.builder(
+                      itemCount: aquariums.length,
+                      itemBuilder: (context, index) {
+                        final aquarium = aquariums[index].data() as Map<String, dynamic>;
+                        final aquariumId = aquariums[index].id;
+                        return GestureDetector(
+                          onTap: () => _navigateToDetailScreen(aquariumId, aquarium),
+                          child: ListTile(
+                            title: Text(aquarium['name'] ?? 'No Name'),
+                            subtitle: Text(aquarium['roomLocation'] ?? 'No Location'),
+                            trailing: Text(
+                              'L: ${aquarium['lengthCm']} W: ${aquarium['widthCm']} H: ${aquarium['heightCm']} cm',
+                            ),
+                          ),
+                        );
+                      },
                     );
                   },
-                  child: Card(
-                    child: ListTile(
-                      leading: aquarium.imagePath != null &&
-                              File(aquarium.imagePath!).existsSync()
-                          ? Image.file(
-                              File(aquarium.imagePath!),
-                              width: 50,
-                              height: 50,
-                              fit: BoxFit.cover,
-                            )
-                          : const Icon(Icons.image_outlined),
-                      title: Text(aquarium.name),
-                      subtitle: Text(
-                        '${aquarium.roomLocation} • ${aquarium.volumeInLitres.toStringAsFixed(1)} L',
-                      ),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () => _openAquariumDetail(aquarium),
-                    ),
-                  ),
-                );
-              },
-            ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _navigateToAddAquarium,
-        child: const Icon(Icons.add),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: _navigateToAddAquariumScreen,
+                child: const Text("Add Aquarium"),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

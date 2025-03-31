@@ -10,7 +10,15 @@ dependencies:
   flutter:
     sdk: flutter
   image_picker: ^1.0.4
+  flutter_local_notifications: ^19.0.0
+  timezone: ^0.10.0
+  permission_handler: ^11.4.0
+  firebase_core: ^3.12.0  # Replace with the recommended version
+  firebase_auth: ^5.5.1 # Replace with the recommended version
+  cloud_firestore: ^5.6.5 # Replace with the recommended version
 
+
+  
 dev_dependencies:
   flutter_test:
     sdk: flutter

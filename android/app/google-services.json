@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "557311619117",
+    "project_id": "aquariummanager-7120f",
+    "storage_bucket": "aquariummanager-7120f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:557311619117:android:cf3ed85a00bd249abc88a4",
+        "android_client_info": {
+          "package_name": "com.example.aquarium_tracker"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCqNdtfiBVTnBEts_QxNrfGXW_CF3C3C5Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

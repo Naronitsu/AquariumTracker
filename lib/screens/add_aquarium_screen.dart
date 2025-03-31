@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import '../models/aquarium.dart';
 
 class AddAquariumScreen extends StatefulWidget {
@@ -7,29 +10,67 @@ class AddAquariumScreen extends StatefulWidget {
   const AddAquariumScreen({super.key, required this.onAdd});
 
   @override
-  State<AddAquariumScreen> createState() => _AddAquariumScreenState();
+  _AddAquariumScreenState createState() => _AddAquariumScreenState();
 }
 
 class _AddAquariumScreenState extends State<AddAquariumScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _roomController = TextEditingController();
-  final _lengthController = TextEditingController();
-  final _widthController = TextEditingController();
-  final _heightController = TextEditingController();
+  double _length = 0.0;
+  double _width = 0.0;
+  double _height = 0.0;
+  String? _imagePath;
 
-  void _saveAquarium() {
+  Future<void> _takePicture() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.camera);
+    if (pickedFile != null) {
+      setState(() {
+        _imagePath = pickedFile.path;
+      });
+    }
+  }
+
+  void _saveAquarium() async {
     if (_formKey.currentState!.validate()) {
+      final aquariumId = FirebaseFirestore.instance.collection('aquariums').doc().id;
+
       final aquarium = Aquarium(
+        id: aquariumId,
         name: _nameController.text,
         roomLocation: _roomController.text,
-        lengthCm: double.parse(_lengthController.text),
-        widthCm: double.parse(_widthController.text),
-        heightCm: double.parse(_heightController.text),
+        lengthCm: _length,
+        widthCm: _width,
+        heightCm: _height,
+        imagePath: _imagePath,
+        fishInventory: [],
+        feedingTimes: [],
+        waterParameters: null,
       );
 
-      widget.onAdd(aquarium);
-      Navigator.pop(context);
+      try {
+        await FirebaseFirestore.instance.collection('aquariums').doc(aquariumId).set({
+          'name': aquarium.name,
+          'roomLocation': aquarium.roomLocation,
+          'lengthCm': aquarium.lengthCm,
+          'widthCm': aquarium.widthCm,
+          'heightCm': aquarium.heightCm,
+          'imagePath': aquarium.imagePath,
+          'feedingTimes': [],
+          'fishInventory': [],
+          'waterParameters': null,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+
+        widget.onAdd(aquarium);
+        Navigator.pop(context);
+      } catch (e) {
+        print("Failed to add aquarium: $e");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to add aquarium: $e')),
+        );
+      }
     }
   }
 
@@ -46,32 +87,37 @@ class _AddAquariumScreenState extends State<AddAquariumScreen> {
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(labelText: 'Aquarium Name'),
-                validator: (value) => value!.isEmpty ? 'Enter a name' : null,
+                validator: (value) => value == null || value.trim().isEmpty ? 'Please enter a name' : null,
               ),
               TextFormField(
                 controller: _roomController,
                 decoration: const InputDecoration(labelText: 'Room Location'),
-                validator: (value) => value!.isEmpty ? 'Enter room location' : null,
+                validator: (value) => value == null || value.trim().isEmpty ? 'Please enter a room location' : null,
               ),
               TextFormField(
-                controller: _lengthController,
                 decoration: const InputDecoration(labelText: 'Length (cm)'),
                 keyboardType: TextInputType.number,
-                validator: (value) => value!.isEmpty ? 'Enter length' : null,
+                onChanged: (value) => _length = double.tryParse(value) ?? 0.0,
               ),
               TextFormField(
-                controller: _widthController,
                 decoration: const InputDecoration(labelText: 'Width (cm)'),
                 keyboardType: TextInputType.number,
-                validator: (value) => value!.isEmpty ? 'Enter width' : null,
+                onChanged: (value) => _width = double.tryParse(value) ?? 0.0,
               ),
               TextFormField(
-                controller: _heightController,
                 decoration: const InputDecoration(labelText: 'Height (cm)'),
                 keyboardType: TextInputType.number,
-                validator: (value) => value!.isEmpty ? 'Enter height' : null,
+                onChanged: (value) => _height = double.tryParse(value) ?? 0.0,
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
+              if (_imagePath != null)
+                Image.file(File(_imagePath!), height: 100, width: 100, fit: BoxFit.cover),
+              TextButton.icon(
+                onPressed: _takePicture,
+                icon: const Icon(Icons.camera_alt),
+                label: const Text('Take Photo'),
+              ),
+              const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: _saveAquarium,
                 child: const Text('Save Aquarium'),

@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
-import 'screens/home_screen.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'screens/home_screen.dart'; // Your home screen file
 
-void main() {
-  runApp(const AquariumApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();  // Initialize Firebase
+  runApp(MyApp());
 }
 
-class AquariumApp extends StatelessWidget {
-  const AquariumApp({super.key});
-
+class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -16,7 +17,7 @@ class AquariumApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
         useMaterial3: true,
       ),
-      home: const HomeScreen(),
+      home: HomeScreen(),  // Replace with your home screen
     );
   }
 }

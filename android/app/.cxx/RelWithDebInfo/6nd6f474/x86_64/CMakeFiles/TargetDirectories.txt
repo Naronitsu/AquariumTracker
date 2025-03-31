@@ -1,0 +1,2 @@
+C:/Users/Damian/Documents/android/assignment/aquarium_tracker/android/app/.cxx/RelWithDebInfo/6nd6f474/x86_64/CMakeFiles/edit_cache.dir
+C:/Users/Damian/Documents/android/assignment/aquarium_tracker/android/app/.cxx/RelWithDebInfo/6nd6f474/x86_64/CMakeFiles/rebuild_cache.dir
