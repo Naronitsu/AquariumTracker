@@ -1,5 +1,7 @@
 import 'fish.dart';
 import 'water_parameters.dart';
+
+/// Represents a single aquarium and all its properties
 class Aquarium {
   String id;
   String name;
@@ -26,24 +28,28 @@ class Aquarium {
   })  : fishInventory = fishInventory ?? [],
         feedingTimes = feedingTimes ?? [];
 
+  /// Volume in cubic centimeters
   double get volumeInCm3 => lengthCm * widthCm * heightCm;
+
+  /// Volume in litres (1,000 cm^3 = 1 L)
   double get volumeInLitres => volumeInCm3 / 1000;
 
-  // ✅ New volume method
-  double calculateVolumeLitres() {
-    return (lengthCm * widthCm * heightCm) / 1000;
-  }
+  /// Alternative volume calculation (redundant, kept for clarity/testing)
+  double calculateVolumeLitres() => volumeInLitres;
 
+  /// Fish inventory helpers
   void addFish(Fish fish) => fishInventory.add(fish);
   void removeFish(Fish fish) => fishInventory.remove(fish);
   int getFishCount(String fishName) =>
       fishInventory.where((fish) => fish.name == fishName).length;
   void clearFishInventory() => fishInventory.clear();
 
+  /// Feeding schedule helpers
   void addFeedingTime(DateTime time) => feedingTimes.add(time);
   void removeFeedingTime(DateTime time) => feedingTimes.remove(time);
   void clearFeedingTimes() => feedingTimes.clear();
 
+  /// Convert this object into a map for Firebase
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -59,6 +65,7 @@ class Aquarium {
     };
   }
 
+  /// Create an Aquarium object from a Firebase map
   factory Aquarium.fromMap(Map<String, dynamic> data) {
     return Aquarium(
       id: data['id'],
@@ -75,10 +82,8 @@ class Aquarium {
           : null,
       imagePath: data['imagePath'],
       feedingTimes: (data['feedingTimes'] as List)
-          .map((e) => DateTime.parse(e))
-          .toList(),
+    .map((e) => e is DateTime ? e : DateTime.parse(e))
+    .toList(),
     );
   }
 }
-
-

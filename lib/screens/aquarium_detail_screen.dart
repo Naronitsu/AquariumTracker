@@ -5,6 +5,7 @@ import '../models/aquarium.dart';
 import '../services/notifications_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+/// Detailed screen for a specific aquarium
 class AquariumDetailScreen extends StatefulWidget {
   final String aquariumId;
   final Map<String, dynamic> aquarium;
@@ -20,24 +21,20 @@ class AquariumDetailScreen extends StatefulWidget {
   });
 
   @override
-  _AquariumDetailScreenState createState() => _AquariumDetailScreenState();
+  State<AquariumDetailScreen> createState() => _AquariumDetailScreenState();
 }
 
 class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
-  final _firestore = FirebaseFirestore.instance;
-
+  final FirebaseFirestore _firebaseFirestore = FirebaseFirestore.instance;
   final TextEditingController _hourController = TextEditingController();
   final TextEditingController _minuteController = TextEditingController();
 
   Future<void> _updateAquariumData() async {
-    await _firestore.collection('aquariums').doc(widget.aquariumId).update({
-      'feedingTimes': (widget.aquarium['feedingTimes'] as List)
-          .map((e) => (e is DateTime) ? e.toIso8601String() : e.toString())
-          .toList(),
+    await _firebaseFirestore.collection('aquariums').doc(widget.aquariumId).update({
+      'feedingTimes': (widget.aquarium['feedingTimes'] as List?)?.map((e) => e.toString()).toList() ?? [],
       'waterParameters': widget.aquarium['waterParameters'],
       'fishInventory': widget.aquarium['fishInventory'],
     });
-
     widget.onAdd(Aquarium.fromMap(widget.aquarium));
   }
 
@@ -46,11 +43,9 @@ class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
     final pickedFile = await picker.pickImage(source: ImageSource.camera);
 
     if (pickedFile != null) {
-      setState(() {
-        widget.aquarium['imagePath'] = pickedFile.path;
-      });
+      setState(() => widget.aquarium['imagePath'] = pickedFile.path);
 
-      await _firestore.collection('aquariums').doc(widget.aquariumId).update({
+      await _firebaseFirestore.collection('aquariums').doc(widget.aquariumId).update({
         'imagePath': pickedFile.path,
       });
 
@@ -61,7 +56,6 @@ class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
   void _setFeedingTime() {
     final int hour = int.tryParse(_hourController.text) ?? 0;
     final int minute = int.tryParse(_minuteController.text) ?? 0;
-
     widget.aquarium['feedingTimes'] ??= [];
 
     setState(() {
@@ -83,10 +77,7 @@ class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
         title: const Text('Delete Aquarium'),
         content: const Text('Are you sure you want to delete this aquarium?'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           TextButton(
             onPressed: () {
               widget.onDelete(widget.aquariumId);
@@ -100,13 +91,15 @@ class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
     );
   }
 
-  void _showWaterParameterDialog() {
-    final phController = TextEditingController();
-    final tempController = TextEditingController();
-    final nitrateController = TextEditingController();
-    final nitriteController = TextEditingController();
-    final ammoniaController = TextEditingController();
-    final ghController = TextEditingController();
+  void _addOrEditWaterParameters() {
+    final Map<String, TextEditingController> controllers = {
+      'ph': TextEditingController(),
+      'temperature': TextEditingController(),
+      'nitrate': TextEditingController(),
+      'nitrite': TextEditingController(),
+      'ammonia': TextEditingController(),
+      'generalHardness': TextEditingController(),
+    };
 
     showDialog(
       context: context,
@@ -114,14 +107,13 @@ class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
         title: const Text('Set Water Parameters'),
         content: SingleChildScrollView(
           child: Column(
-            children: [
-              TextField(controller: phController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'pH')),
-              TextField(controller: tempController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Temperature (°C)')),
-              TextField(controller: nitrateController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Nitrate')),
-              TextField(controller: nitriteController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Nitrite')),
-              TextField(controller: ammoniaController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Ammonia')),
-              TextField(controller: ghController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'General Hardness (GH)')),
-            ],
+            children: controllers.entries.map((entry) =>
+              TextField(
+                controller: entry.value,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(labelText: entry.key.capitalize()),
+              )
+            ).toList(),
           ),
         ),
         actions: [
@@ -129,16 +121,10 @@ class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
           TextButton(
             onPressed: () {
               setState(() {
-                widget.aquarium['waterParameters'] = {
-                  'ph': double.tryParse(phController.text) ?? 0,
-                  'temperature': double.tryParse(tempController.text) ?? 0,
-                  'nitrate': double.tryParse(nitrateController.text) ?? 0,
-                  'nitrite': double.tryParse(nitriteController.text) ?? 0,
-                  'ammonia': double.tryParse(ammoniaController.text) ?? 0,
-                  'generalHardness': double.tryParse(ghController.text) ?? 0,
-                };
+                widget.aquarium['waterParameters'] = controllers.map((key, controller) =>
+                  MapEntry(key, double.tryParse(controller.text) ?? 0.0)
+                );
               });
-
               Navigator.pop(context);
               _updateAquariumData();
             },
@@ -172,11 +158,7 @@ class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
                   DropdownMenuItem(value: 'Male', child: Text('Male')),
                   DropdownMenuItem(value: 'Female', child: Text('Female')),
                 ],
-                onChanged: (value) {
-                  if (value != null) {
-                    selectedSex = value;
-                  }
-                },
+                onChanged: (value) => selectedSex = value ?? 'Unknown',
                 decoration: const InputDecoration(labelText: 'Sex'),
               ),
               TextField(controller: notesController, decoration: const InputDecoration(labelText: 'Notes (optional)')),
@@ -193,12 +175,10 @@ class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
                 'sex': selectedSex,
                 'notes': notesController.text.trim(),
               };
-
               setState(() {
                 widget.aquarium['fishInventory'] ??= [];
                 widget.aquarium['fishInventory'].add(newFish);
               });
-
               Navigator.pop(context);
               _updateAquariumData();
             },
@@ -214,86 +194,47 @@ class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
     final water = widget.aquarium['waterParameters'];
     final feedingTimes = widget.aquarium['feedingTimes'] ?? [];
     final fishInventory = widget.aquarium['fishInventory'] ?? [];
-    final double? length = widget.aquarium['lengthCm']?.toDouble();
-    final double? width = widget.aquarium['widthCm']?.toDouble();
-    final double? height = widget.aquarium['heightCm']?.toDouble();
-
-    final double? volume = (length != null && width != null && height != null)
-        ? (length * width * height) / 1000
-        : null;
+    final volume = _calculateVolume();
 
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.aquarium['name'] ?? 'Unnamed Aquarium'),
-        actions: [
-          IconButton(icon: const Icon(Icons.delete), onPressed: _confirmDeleteAquarium),
-        ],
+        actions: [IconButton(icon: const Icon(Icons.delete), onPressed: _confirmDeleteAquarium)],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: ListView(
           children: [
-            if (widget.aquarium['imagePath'] != null &&
-                File(widget.aquarium['imagePath']).existsSync())
-              Image.file(
-                File(widget.aquarium['imagePath']),
-                height: 200,
-                width: double.infinity,
-                fit: BoxFit.cover,
-              ),
+            if (widget.aquarium['imagePath'] != null && File(widget.aquarium['imagePath']).existsSync())
+              Image.file(File(widget.aquarium['imagePath']), height: 200, width: double.infinity, fit: BoxFit.cover),
             TextButton.icon(
               onPressed: _takePicture,
               icon: const Icon(Icons.camera_alt),
               label: const Text('Take Photo'),
             ),
             const SizedBox(height: 8),
-
             Text('Room: ${widget.aquarium['roomLocation'] ?? 'Unknown'}'),
-            Text(
-              'Volume: ${volume != null ? volume.toStringAsFixed(1) : 'N/A'} L',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
+            Text('Volume: ${volume != null ? volume.toStringAsFixed(1) : 'N/A'} L', style: const TextStyle(fontWeight: FontWeight.bold)),
             const Divider(height: 30),
-
             ListTile(
               title: const Text('Water Parameters'),
               subtitle: water == null
                   ? const Text('Not set')
-                  : Text(
-                      'pH: ${water['ph']}, Temp: ${water['temperature']}°C\n'
+                  : Text('pH: ${water['ph']}, Temp: ${water['temperature']}°C\n'
                       'Nitrate: ${water['nitrate']}, Nitrite: ${water['nitrite']}\n'
-                      'Ammonia: ${water['ammonia']}, GH: ${water['generalHardness']}',
-                    ),
-              trailing: IconButton(
-                icon: const Icon(Icons.edit),
-                onPressed: _showWaterParameterDialog,
-              ),
+                      'Ammonia: ${water['ammonia']}, GH: ${water['generalHardness']}'),
+              trailing: IconButton(icon: const Icon(Icons.edit), onPressed: _addOrEditWaterParameters),
             ),
             const Divider(),
-
             ListTile(
               title: const Text('Fish Inventory'),
-              trailing: IconButton(
-                icon: const Icon(Icons.add),
-                onPressed: _showAddFishDialog,
-              ),
+              trailing: IconButton(icon: const Icon(Icons.add), onPressed: _showAddFishDialog),
             ),
-            ...fishInventory.map<Widget>((fish) {
-              final String name = fish['name'] ?? 'Unnamed Fish';
-              final String sex = fish['sex'] ?? 'Unknown';
-              final int quantity = (fish['quantity'] ?? 1) is int
-                  ? fish['quantity']
-                  : int.tryParse(fish['quantity'].toString()) ?? 1;
-              final String notes = fish['notes'] ?? '';
-
-              return ListTile(
-                title: Text('$name ($quantity, $sex)'),
-                subtitle: notes.isNotEmpty ? Text(notes) : null,
-              );
-            }),
-
+            ...fishInventory.map<Widget>((fish) => ListTile(
+                  title: Text('${fish['name']} (${fish['quantity']}, ${fish['sex']})'),
+                  subtitle: fish['notes']?.isNotEmpty == true ? Text(fish['notes']) : null,
+                )),
             const Divider(),
-
             ListTile(
               title: const Text('Feeding Times'),
               subtitle: feedingTimes.isEmpty
@@ -301,61 +242,15 @@ class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
                   : Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: feedingTimes.map<Widget>((time) {
-                        DateTime? parsed;
-                        if (time is String) {
-                          parsed = DateTime.tryParse(time);
-                        } else if (time is DateTime) {
-                          parsed = time;
-                        }
-                        if (parsed != null) {
-                          final h = parsed.hour.toString().padLeft(2, '0');
-                          final m = parsed.minute.toString().padLeft(2, '0');
-                          return Text('Feed at $h:$m');
-                        } else {
-                          return const Text('Invalid time');
-                        }
+                        final parsed = time is String ? DateTime.tryParse(time) : (time as DateTime?);
+                        return parsed != null
+                            ? Text('Feed at ${parsed.hour.toString().padLeft(2, '0')}:${parsed.minute.toString().padLeft(2, '0')}')
+                            : const Text('Invalid time');
                       }).toList(),
                     ),
               trailing: IconButton(
                 icon: const Icon(Icons.add_alarm),
-                onPressed: () {
-                  _hourController.clear();
-                  _minuteController.clear();
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Set Feeding Time'),
-                      content: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          TextField(
-                            controller: _hourController,
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(labelText: 'Hour (24-hour format)'),
-                          ),
-                          TextField(
-                            controller: _minuteController,
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(labelText: 'Minute'),
-                          ),
-                        ],
-                      ),
-                      actions: [
-                        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-                        TextButton(
-                          onPressed: () {
-                            if (_hourController.text.isNotEmpty &&
-                                _minuteController.text.isNotEmpty) {
-                              _setFeedingTime();
-                              Navigator.pop(context);
-                            }
-                          },
-                          child: const Text('Save'),
-                        ),
-                      ],
-                    ),
-                  );
-                },
+                onPressed: () => _showFeedingTimeDialog(),
               ),
             ),
           ],
@@ -363,4 +258,56 @@ class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
       ),
     );
   }
+
+  double? _calculateVolume() {
+    final length = widget.aquarium['lengthCm']?.toDouble();
+    final width = widget.aquarium['widthCm']?.toDouble();
+    final height = widget.aquarium['heightCm']?.toDouble();
+    if (length != null && width != null && height != null) {
+      return (length * width * height) / 1000;
+    }
+    return null;
+  }
+
+  void _showFeedingTimeDialog() {
+    _hourController.clear();
+    _minuteController.clear();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Set Feeding Time'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _hourController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Hour (24-hour format)'),
+            ),
+            TextField(
+              controller: _minuteController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Minute'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () {
+              if (_hourController.text.isNotEmpty && _minuteController.text.isNotEmpty) {
+                _setFeedingTime();
+                Navigator.pop(context);
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+extension StringExtension on String {
+  String capitalize() => isEmpty ? this : this[0].toUpperCase() + substring(1);
 }

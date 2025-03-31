@@ -1,10 +1,10 @@
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+/// Represents a fish species or group in the aquarium
 class Fish {
   String name;
   int quantity;
-  String sex;
+  String sex; // Can be 'Male', 'Female', or 'Unknown'
   String comment;
 
   Fish({
@@ -14,7 +14,7 @@ class Fish {
     this.comment = '',
   });
 
-  // Method to convert Fish object to a map
+  /// Convert Fish object into a map for Firebase
   Map<String, dynamic> toMap() {
     return {
       'name': name,
@@ -24,7 +24,7 @@ class Fish {
     };
   }
 
-  // Method to create a Fish object from a Firestore document
+  /// Create a Fish object from a map (e.g., from Firestore)
   factory Fish.fromMap(Map<String, dynamic> map) {
     return Fish(
       name: map['name'],
@@ -34,15 +34,9 @@ class Fish {
     );
   }
 
-  // Method to create a Fish object from Firestore document snapshot
+  /// Create a Fish object from a Firestore document snapshot
   factory Fish.fromFirestore(DocumentSnapshot doc) {
     var data = doc.data() as Map<String, dynamic>;
-    return Fish(
-      name: data['name'],
-      quantity: data['quantity'],
-      sex: data['sex'] ?? 'Unknown',
-      comment: data['comment'] ?? '',
-    );
+    return Fish.fromMap(data);
   }
 }
-

@@ -1,12 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+
+// Screens
 import 'screens/home_screen.dart'; 
+
+// Services
 import 'services/notifications_service.dart';
 
-void main() async {
+Future<void> main() async {
+  // Ensure Flutter binding is initialized before Firebase or other services
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize local notification service
   await NotificationsService.initialize();
-  await Firebase.initializeApp();  // Initialize Firebase
+
+  // Initialize Firebase
+  await Firebase.initializeApp();
+
+  // Launch the app
   runApp(MyApp());
 }
 
@@ -15,7 +26,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Aquarium Tracker',
-      themeMode: ThemeMode.dark,
+      themeMode: ThemeMode.dark, // Always use dark theme
       darkTheme: ThemeData(
         brightness: Brightness.dark,
         colorScheme: ColorScheme.fromSeed(
