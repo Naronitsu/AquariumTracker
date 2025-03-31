@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
@@ -126,12 +127,14 @@ class _AddAquariumScreenState extends State<AddAquariumScreen> {
                     ),
                     const SizedBox(height: 16),
                     if (_imagePath != null)
-                      Image.file(
-                        File(_imagePath!),
-                        height: 100,
-                        width: 100,
-                        fit: BoxFit.cover,
-                      ),
+                      kIsWeb
+                          ? const Icon(Icons.image_not_supported, size: 100)
+                          : Image.file(
+                              File(_imagePath!),
+                              height: 100,
+                              width: 100,
+                              fit: BoxFit.cover,
+                            ),
                     TextButton.icon(
                       onPressed: _takePicture,
                       icon: const Icon(Icons.camera_alt),

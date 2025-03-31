@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import '../services/notifications_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -16,7 +17,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  /// Firestore instance to interact with the 'aquariums' collection.
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
@@ -28,23 +28,27 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: const Icon(Icons.add),
             tooltip: 'Add Aquarium',
-            onPressed: () => _navigateToAddAquariumScreen(),
+            onPressed: _navigateToAddAquariumScreen,
           ),
           IconButton(
             icon: const Icon(Icons.delete),
             tooltip: 'Delete All',
-            onPressed: () => _navigateToDeleteAllScreen(),
+            onPressed: _navigateToDeleteAllScreen,
           ),
         ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: _buildAquariumList(),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isWideScreen = constraints.maxWidth >= 600;
+            return _buildAquariumList(isWideScreen: isWideScreen);
+          },
+        ),
       ),
     );
   }
 
-  /// Navigates to the screen for adding a new aquarium.
   void _navigateToAddAquariumScreen() {
     Navigator.push(
       context,
@@ -54,7 +58,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Navigates to the screen for deleting all aquariums.
   void _navigateToDeleteAllScreen() {
     Navigator.push(
       context,
@@ -62,8 +65,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Builds the list of aquariums using a [StreamBuilder].
-  Widget _buildAquariumList() {
+  Widget _buildAquariumList({required bool isWideScreen}) {
     return StreamBuilder<QuerySnapshot>(
       stream: _firestore.collection('aquariums').snapshots(),
       builder: (context, snapshot) {
@@ -72,6 +74,7 @@ class _HomeScreenState extends State<HomeScreen> {
         }
 
         if (snapshot.hasError) {
+          print(snapshot.error);
           return const Center(child: Text('Something went wrong'));
         }
 
@@ -81,85 +84,140 @@ class _HomeScreenState extends State<HomeScreen> {
           return const Center(child: Text('No aquariums available.'));
         }
 
-        return ListView.builder(
-          itemCount: docs.length,
-          itemBuilder: (context, index) {
-            final doc = docs[index];
-            final data = doc.data() as Map<String, dynamic>;
-            final aquarium = Aquarium.fromMap({...data, 'id': doc.id});
-
-            return _buildAquariumCard(aquarium, data);
-          },
-        );
+        return isWideScreen
+            ? GridView.builder(
+                shrinkWrap: true,
+                cacheExtent: 500,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                  childAspectRatio: 3,
+                ),
+                itemCount: docs.length,
+                itemBuilder: (context, index) {
+                  final doc = docs[index];
+                  final data = doc.data() as Map<String, dynamic>;
+                  final aquarium = Aquarium.fromMap({
+                    ...data,
+                    'id': doc.id,
+                    'lengthCm': (data['lengthCm'] as num?)?.toDouble() ?? 0.0,
+                    'widthCm': (data['widthCm'] as num?)?.toDouble() ?? 0.0,
+                    'heightCm': (data['heightCm'] as num?)?.toDouble() ?? 0.0,
+                  });
+                  return _buildAquariumCard(aquarium, data);
+                },
+              )
+            : ListView.builder(
+                itemCount: docs.length,
+                itemBuilder: (context, index) {
+                  final doc = docs[index];
+                  final data = doc.data() as Map<String, dynamic>;
+                  final aquarium = Aquarium.fromMap({
+                    ...data,
+                    'id': doc.id,
+                    'lengthCm': (data['lengthCm'] as num?)?.toDouble() ?? 0.0,
+                    'widthCm': (data['widthCm'] as num?)?.toDouble() ?? 0.0,
+                    'heightCm': (data['heightCm'] as num?)?.toDouble() ?? 0.0,
+                  });
+                  return _buildAquariumCard(aquarium, data);
+                },
+              );
       },
     );
   }
 
-  /// Builds a card widget displaying aquarium details.
   Widget _buildAquariumCard(Aquarium aquarium, Map<String, dynamic> data) {
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8.0),
-      child: ListTile(
-        leading: _buildThumbnail(aquarium),
-        title: Text(aquarium.name),
-        subtitle: Text(
-          '${aquarium.roomLocation}\n${aquarium.volumeInLitres.toStringAsFixed(1)} L',
-        ),
-        trailing: Text(
-          '${aquarium.lengthCm}x${aquarium.widthCm}x${aquarium.heightCm} cm\nVolume: ${aquarium.volumeInLitres.toStringAsFixed(1)} L',
-        ),
+      elevation: 4,
+      margin: const EdgeInsets.symmetric(vertical: 10.0),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
         onTap: () => _openDetailScreen(aquarium, data),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: _buildThumbnail(aquarium),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(aquarium.name, style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 4),
+                    Text(aquarium.roomLocation, style: Theme.of(context).textTheme.bodyMedium),
+                    const SizedBox(height: 2),
+                    Text('${aquarium.volumeInLitres.toStringAsFixed(1)} L', style: Theme.of(context).textTheme.bodySmall),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text('${aquarium.lengthCm}x${aquarium.widthCm}x${aquarium.heightCm} cm', style: Theme.of(context).textTheme.bodySmall),
+                  Text('Volume: ${aquarium.volumeInLitres.toStringAsFixed(1)} L', style: Theme.of(context).textTheme.bodySmall),
+                ],
+              )
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  /// Builds a thumbnail image for the aquarium if available; otherwise, displays a placeholder icon.
   Widget _buildThumbnail(Aquarium aquarium) {
-    if (aquarium.imagePath != null && File(aquarium.imagePath!).existsSync()) {
-      return Image.file(
-        File(aquarium.imagePath!),
-        width: 60,
-        height: 60,
-        fit: BoxFit.cover,
-      );
-    } else {
-      return const Icon(Icons.image_not_supported, size: 40);
+    if (kIsWeb || aquarium.imagePath == null) {
+      return const Icon(Icons.image_not_supported, size: 60);
+    }
+
+    try {
+      final file = File(aquarium.imagePath!);
+      if (file.existsSync()) {
+        return Image.file(file, width: 60, height: 60, fit: BoxFit.cover);
+      } else {
+        return const Icon(Icons.image_not_supported, size: 60);
+      }
+    } catch (_) {
+      return const Icon(Icons.image_not_supported, size: 60);
     }
   }
 
-  /// Opens the detail screen for the selected [aquarium].
   void _openDetailScreen(Aquarium aquarium, Map<String, dynamic> data) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => AquariumDetailScreen(
-          aquariumId: aquarium.id,
-          aquarium: data,
-          onDelete: _onAquariumDeleted,
-          onAdd: _onAquariumUpdated,
+    try {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AquariumDetailScreen(
+            aquariumId: aquarium.id,
+            aquarium: data,
+            onDelete: _onAquariumDeleted,
+            onAdd: _onAquariumUpdated,
+          ),
         ),
-      ),
-    );
+      );
+    } catch (e, stack) {
+      debugPrint('Failed to open AquariumDetailScreen: $e\n$stack');
+    }
   }
 
-  /// Callback function invoked after a new aquarium is added.
   Future<void> _onAquariumAdded(Aquarium aquarium) async {
     await NotificationsService.showAquariumCreatedNotification(aquarium.name);
-    setState(() {}); // Refresh the aquarium list
+    setState(() {});
   }
 
-  /// Callback function invoked after an aquarium is updated.
   Future<void> _onAquariumUpdated(Aquarium updatedAquarium) async {
-    await _firestore
-        .collection('aquariums')
-        .doc(updatedAquarium.id)
-        .update(updatedAquarium.toMap());
-    setState(() {}); // Refresh the aquarium list
+    await _firestore.collection('aquariums').doc(updatedAquarium.id).update(updatedAquarium.toMap());
+    setState(() {});
   }
 
-  /// Callback function invoked after an aquarium is deleted.
   Future<void> _onAquariumDeleted(String aquariumId) async {
     await _firestore.collection('aquariums').doc(aquariumId).delete();
-    setState(() {}); // Refresh the aquarium list
+    setState(() {});
   }
 }

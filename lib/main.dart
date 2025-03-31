@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 // Screens
 import 'screens/home_screen.dart'; 
@@ -15,7 +16,28 @@ Future<void> main() async {
   await NotificationsService.initialize();
 
   // Initialize Firebase
-  await Firebase.initializeApp();
+   if (kIsWeb) {
+    await Firebase.initializeApp(
+      options: const FirebaseOptions(
+         apiKey: "AIzaSyDMZSgnDHGkaR6_Xu-NAkYnGHYFJUO6Ya4",
+
+        authDomain: "aquariummanager-7120f.firebaseapp.com",
+
+        projectId: "aquariummanager-7120f",
+
+        storageBucket: "aquariummanager-7120f.firebasestorage.app",
+
+        messagingSenderId: "557311619117",
+
+        appId: "1:557311619117:web:139cf6b008ccd02fbc88a4",
+
+        measurementId: "G-PF36NN0X58",
+
+      ),
+    );
+  } else {
+    await Firebase.initializeApp(); // for mobile
+  }
 
   // Launch the app
   runApp(MyApp());

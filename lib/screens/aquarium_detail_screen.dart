@@ -1,6 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 import '../models/aquarium.dart';
 import '../services/notifications_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -189,76 +189,6 @@ class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final water = widget.aquarium['waterParameters'];
-    final feedingTimes = widget.aquarium['feedingTimes'] ?? [];
-    final fishInventory = widget.aquarium['fishInventory'] ?? [];
-    final volume = _calculateVolume();
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.aquarium['name'] ?? 'Unnamed Aquarium'),
-        actions: [IconButton(icon: const Icon(Icons.delete), onPressed: _confirmDeleteAquarium)],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: ListView(
-          children: [
-            if (widget.aquarium['imagePath'] != null && File(widget.aquarium['imagePath']).existsSync())
-              Image.file(File(widget.aquarium['imagePath']), height: 200, width: double.infinity, fit: BoxFit.cover),
-            TextButton.icon(
-              onPressed: _takePicture,
-              icon: const Icon(Icons.camera_alt),
-              label: const Text('Take Photo'),
-            ),
-            const SizedBox(height: 8),
-            Text('Room: ${widget.aquarium['roomLocation'] ?? 'Unknown'}'),
-            Text('Volume: ${volume != null ? volume.toStringAsFixed(1) : 'N/A'} L', style: const TextStyle(fontWeight: FontWeight.bold)),
-            const Divider(height: 30),
-            ListTile(
-              title: const Text('Water Parameters'),
-              subtitle: water == null
-                  ? const Text('Not set')
-                  : Text('pH: ${water['ph']}, Temp: ${water['temperature']}°C\n'
-                      'Nitrate: ${water['nitrate']}, Nitrite: ${water['nitrite']}\n'
-                      'Ammonia: ${water['ammonia']}, GH: ${water['generalHardness']}'),
-              trailing: IconButton(icon: const Icon(Icons.edit), onPressed: _addOrEditWaterParameters),
-            ),
-            const Divider(),
-            ListTile(
-              title: const Text('Fish Inventory'),
-              trailing: IconButton(icon: const Icon(Icons.add), onPressed: _showAddFishDialog),
-            ),
-            ...fishInventory.map<Widget>((fish) => ListTile(
-                  title: Text('${fish['name']} (${fish['quantity']}, ${fish['sex']})'),
-                  subtitle: fish['notes']?.isNotEmpty == true ? Text(fish['notes']) : null,
-                )),
-            const Divider(),
-            ListTile(
-              title: const Text('Feeding Times'),
-              subtitle: feedingTimes.isEmpty
-                  ? const Text('No feeding times set')
-                  : Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: feedingTimes.map<Widget>((time) {
-                        final parsed = time is String ? DateTime.tryParse(time) : (time as DateTime?);
-                        return parsed != null
-                            ? Text('Feed at ${parsed.hour.toString().padLeft(2, '0')}:${parsed.minute.toString().padLeft(2, '0')}')
-                            : const Text('Invalid time');
-                      }).toList(),
-                    ),
-              trailing: IconButton(
-                icon: const Icon(Icons.add_alarm),
-                onPressed: () => _showFeedingTimeDialog(),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   double? _calculateVolume() {
     final length = widget.aquarium['lengthCm']?.toDouble();
     final width = widget.aquarium['widthCm']?.toDouble();
@@ -304,6 +234,91 @@ class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final water = widget.aquarium['waterParameters'];
+    final feedingTimes = widget.aquarium['feedingTimes'] ?? [];
+    final fishInventory = widget.aquarium['fishInventory'] ?? [];
+    final volume = _calculateVolume();
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.aquarium['name'] ?? 'Unnamed Aquarium'),
+        actions: [
+          IconButton(icon: const Icon(Icons.delete), onPressed: _confirmDeleteAquarium),
+        ],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: ListView(
+          children: [
+            if (widget.aquarium['imagePath'] != null &&
+                File(widget.aquarium['imagePath']).existsSync())
+              Image.file(
+                File(widget.aquarium['imagePath']),
+                height: 200,
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
+            _buildDetails(water, volume, feedingTimes, fishInventory),
+          ],
+        ),
+      ),
+    );
+  }
+
+
+  Widget _buildDetails(water, double? volume, List feedingTimes, List fishInventory) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextButton.icon(
+          onPressed: _takePicture,
+          icon: const Icon(Icons.camera_alt),
+          label: const Text('Take Photo'),
+        ),
+        const SizedBox(height: 8),
+        Text('Room: ${widget.aquarium['roomLocation'] ?? 'Unknown'}'),
+        Text('Volume: ${volume != null ? volume.toStringAsFixed(1) : 'N/A'} L', style: const TextStyle(fontWeight: FontWeight.bold)),
+        const Divider(height: 30),
+        ListTile(
+          title: const Text('Water Parameters'),
+          subtitle: water == null
+              ? const Text('Not set')
+              : Text('pH: ${water['ph']}, Temp: ${water['temperature']}°C\n'
+                  'Nitrate: ${water['nitrate']}, Nitrite: ${water['nitrite']}\n'
+                  'Ammonia: ${water['ammonia']}, GH: ${water['generalHardness']}'),
+          trailing: IconButton(icon: const Icon(Icons.edit), onPressed: _addOrEditWaterParameters),
+        ),
+        const Divider(),
+        ListTile(
+          title: const Text('Fish Inventory'),
+          trailing: IconButton(icon: const Icon(Icons.add), onPressed: _showAddFishDialog),
+        ),
+        ...fishInventory.map<Widget>((fish) => ListTile(
+              title: Text('${fish['name']} (${fish['quantity']}, ${fish['sex']})'),
+              subtitle: fish['notes']?.isNotEmpty == true ? Text(fish['notes']) : null,
+            )),
+        const Divider(),
+        ListTile(
+          title: const Text('Feeding Times'),
+          subtitle: feedingTimes.isEmpty
+              ? const Text('No feeding times set')
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: feedingTimes.map<Widget>((time) {
+                    final parsed = time is String ? DateTime.tryParse(time) : (time as DateTime?);
+                    return parsed != null
+                        ? Text('Feed at ${parsed.hour.toString().padLeft(2, '0')}:${parsed.minute.toString().padLeft(2, '0')}')
+                        : const Text('Invalid time');
+                  }).toList(),
+                ),
+          trailing: IconButton(icon: const Icon(Icons.add_alarm), onPressed: _showFeedingTimeDialog),
+        ),
+      ],
     );
   }
 }
