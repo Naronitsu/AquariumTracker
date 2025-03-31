@@ -1,75 +1,49 @@
 import 'fish.dart';
 import 'water_parameters.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 class Aquarium {
-  String id; // Add an id field
+  String id;
   String name;
   String roomLocation;
   double lengthCm;
   double widthCm;
   double heightCm;
-  List<Fish> fishInventory; // List of Fish objects
+  List<Fish> fishInventory;
   WaterParameters? waterParameters;
   String? imagePath;
-  List<DateTime> feedingTimes; // List of feeding times (DateTime objects)
+  List<DateTime> feedingTimes;
 
-  // Constructor
   Aquarium({
-    required this.id,  // Add the id in the constructor
+    required this.id,
     required this.name,
     required this.roomLocation,
     required this.lengthCm,
     required this.widthCm,
     required this.heightCm,
-    List<Fish>? fishInventory, // Optional parameter
+    List<Fish>? fishInventory,
     this.waterParameters,
     this.imagePath,
-    List<DateTime>? feedingTimes, // Optional parameter
-  })  : fishInventory = fishInventory ?? [], // If null, use an empty list
-        feedingTimes = feedingTimes ?? []; // If null, use an empty list
+    List<DateTime>? feedingTimes,
+  })  : fishInventory = fishInventory ?? [],
+        feedingTimes = feedingTimes ?? [];
 
-  // Get aquarium volume in cubic centimeters
   double get volumeInCm3 => lengthCm * widthCm * heightCm;
-
-  // Get aquarium volume in liters
   double get volumeInLitres => volumeInCm3 / 1000;
 
-  // Method to add a fish to the inventory
-  void addFish(Fish fish) {
-    fishInventory.add(fish);
+  // ✅ New volume method
+  double calculateVolumeLitres() {
+    return (lengthCm * widthCm * heightCm) / 1000;
   }
 
-  // Method to remove a fish from the inventory
-  void removeFish(Fish fish) {
-    fishInventory.remove(fish);
-  }
+  void addFish(Fish fish) => fishInventory.add(fish);
+  void removeFish(Fish fish) => fishInventory.remove(fish);
+  int getFishCount(String fishName) =>
+      fishInventory.where((fish) => fish.name == fishName).length;
+  void clearFishInventory() => fishInventory.clear();
 
-  // Method to get the count of fish of a specific name
-  int getFishCount(String fishName) {
-    return fishInventory.where((fish) => fish.name == fishName).length;
-  }
+  void addFeedingTime(DateTime time) => feedingTimes.add(time);
+  void removeFeedingTime(DateTime time) => feedingTimes.remove(time);
+  void clearFeedingTimes() => feedingTimes.clear();
 
-  // Method to clear all fish in the inventory
-  void clearFishInventory() {
-    fishInventory.clear();
-  }
-
-  // Method to add a feeding time
-  void addFeedingTime(DateTime time) {
-    feedingTimes.add(time);
-  }
-
-  // Method to remove a feeding time
-  void removeFeedingTime(DateTime time) {
-    feedingTimes.remove(time);
-  }
-
-  // Method to clear all feeding times
-  void clearFeedingTimes() {
-    feedingTimes.clear();
-  }
-
-  // Method to convert the Aquarium object to a map
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -85,10 +59,9 @@ class Aquarium {
     };
   }
 
-  // Factory method to create an Aquarium from Firestore document
   factory Aquarium.fromMap(Map<String, dynamic> data) {
     return Aquarium(
-      id: data['id'], // The id is typically provided by Firestore document snapshot
+      id: data['id'],
       name: data['name'],
       roomLocation: data['roomLocation'],
       lengthCm: data['lengthCm'],
@@ -107,4 +80,5 @@ class Aquarium {
     );
   }
 }
+
 

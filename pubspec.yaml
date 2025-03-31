@@ -9,20 +9,36 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+
+  # Firebase core (required by all other firebase_* packages)
+  firebase_core: ^3.12.1
+
+  # Firestore database
+  cloud_firestore: ^5.6.5
+
+  # Firebase Storage (for image uploads)
+  firebase_storage: ^12.4.4
+
+  # Firebase Auth (version that works with firebase_core ^2.25.4)
+  firebase_auth: ^5.5.0
+
+  # Camera & file picker
   image_picker: ^1.0.4
+
+  # Notifications
   flutter_local_notifications: ^19.0.0
   timezone: ^0.10.0
+
+  # Permissions
   permission_handler: ^11.4.0
-  firebase_core: ^3.12.0  # Replace with the recommended version
-  firebase_auth: ^5.5.1 # Replace with the recommended version
-  cloud_firestore: ^5.6.5 # Replace with the recommended version
+
 
 
   
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^4.0.0
+  flutter_lints: ^5.0.0
 
 flutter:
   uses-material-design: true

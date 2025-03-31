@@ -29,7 +29,6 @@ class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
   final TextEditingController _hourController = TextEditingController();
   final TextEditingController _minuteController = TextEditingController();
 
-  // Save the updated aquarium to Firestore
   Future<void> _updateAquariumData() async {
     await _firestore.collection('aquariums').doc(widget.aquariumId).update({
       'feedingTimes': (widget.aquarium['feedingTimes'] as List)
@@ -42,7 +41,6 @@ class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
     widget.onAdd(Aquarium.fromMap(widget.aquarium));
   }
 
-  // Pick an image and update Firestore
   Future<void> _takePicture() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.camera);
@@ -60,7 +58,6 @@ class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
     }
   }
 
-  // Add a feeding time and update Firestore
   void _setFeedingTime() {
     final int hour = int.tryParse(_hourController.text) ?? 0;
     final int minute = int.tryParse(_minuteController.text) ?? 0;
@@ -79,7 +76,6 @@ class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
     );
   }
 
-  // Confirm and delete aquarium
   void _confirmDeleteAquarium() {
     showDialog(
       context: context,
@@ -104,7 +100,6 @@ class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
     );
   }
 
-  // Dialog to add/edit water parameters
   void _showWaterParameterDialog() {
     final phController = TextEditingController();
     final tempController = TextEditingController();
@@ -144,8 +139,8 @@ class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
                 };
               });
 
-              Navigator.pop(context); // Close dialog first
-              _updateAquariumData(); // Sync to Firestore
+              Navigator.pop(context);
+              _updateAquariumData();
             },
             child: const Text('Save'),
           ),
@@ -154,21 +149,39 @@ class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
     );
   }
 
-  // Dialog to add a fish to inventory
   void _showAddFishDialog() {
     final nameController = TextEditingController();
+    final quantityController = TextEditingController(text: '1');
     final notesController = TextEditingController();
+    String selectedSex = 'Unknown';
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Add Fish'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Fish Name')),
-            TextField(controller: notesController, decoration: const InputDecoration(labelText: 'Notes (optional)')),
-          ],
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Fish Name')),
+              TextField(controller: quantityController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Quantity')),
+              DropdownButtonFormField<String>(
+                value: selectedSex,
+                items: const [
+                  DropdownMenuItem(value: 'Unknown', child: Text('Unknown')),
+                  DropdownMenuItem(value: 'Male', child: Text('Male')),
+                  DropdownMenuItem(value: 'Female', child: Text('Female')),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    selectedSex = value;
+                  }
+                },
+                decoration: const InputDecoration(labelText: 'Sex'),
+              ),
+              TextField(controller: notesController, decoration: const InputDecoration(labelText: 'Notes (optional)')),
+            ],
+          ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
@@ -176,6 +189,8 @@ class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
             onPressed: () {
               final newFish = {
                 'name': nameController.text.trim(),
+                'quantity': int.tryParse(quantityController.text.trim()) ?? 1,
+                'sex': selectedSex,
                 'notes': notesController.text.trim(),
               };
 
@@ -184,8 +199,8 @@ class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
                 widget.aquarium['fishInventory'].add(newFish);
               });
 
-              Navigator.pop(context); // Close dialog
-              _updateAquariumData(); // Sync to Firestore
+              Navigator.pop(context);
+              _updateAquariumData();
             },
             child: const Text('Add'),
           ),
@@ -199,6 +214,13 @@ class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
     final water = widget.aquarium['waterParameters'];
     final feedingTimes = widget.aquarium['feedingTimes'] ?? [];
     final fishInventory = widget.aquarium['fishInventory'] ?? [];
+    final double? length = widget.aquarium['lengthCm']?.toDouble();
+    final double? width = widget.aquarium['widthCm']?.toDouble();
+    final double? height = widget.aquarium['heightCm']?.toDouble();
+
+    final double? volume = (length != null && width != null && height != null)
+        ? (length * width * height) / 1000
+        : null;
 
     return Scaffold(
       appBar: AppBar(
@@ -211,7 +233,6 @@ class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
         padding: const EdgeInsets.all(16.0),
         child: ListView(
           children: [
-            // Image preview
             if (widget.aquarium['imagePath'] != null &&
                 File(widget.aquarium['imagePath']).existsSync())
               Image.file(
@@ -227,15 +248,13 @@ class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
             ),
             const SizedBox(height: 8),
 
-            // Basic info
             Text('Room: ${widget.aquarium['roomLocation'] ?? 'Unknown'}'),
             Text(
-              'Volume: ${widget.aquarium['volumeInLitres'] ?? 'N/A'} L',
+              'Volume: ${volume != null ? volume.toStringAsFixed(1) : 'N/A'} L',
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             const Divider(height: 30),
 
-            // Water Parameters
             ListTile(
               title: const Text('Water Parameters'),
               subtitle: water == null
@@ -252,7 +271,6 @@ class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
             ),
             const Divider(),
 
-            // Fish Inventory
             ListTile(
               title: const Text('Fish Inventory'),
               trailing: IconButton(
@@ -261,15 +279,21 @@ class _AquariumDetailScreenState extends State<AquariumDetailScreen> {
               ),
             ),
             ...fishInventory.map<Widget>((fish) {
+              final String name = fish['name'] ?? 'Unnamed Fish';
+              final String sex = fish['sex'] ?? 'Unknown';
+              final int quantity = (fish['quantity'] ?? 1) is int
+                  ? fish['quantity']
+                  : int.tryParse(fish['quantity'].toString()) ?? 1;
+              final String notes = fish['notes'] ?? '';
+
               return ListTile(
-                title: Text(fish['name'] ?? 'Unnamed Fish'),
-                subtitle: Text(fish['notes'] ?? ''),
+                title: Text('$name ($quantity, $sex)'),
+                subtitle: notes.isNotEmpty ? Text(notes) : null,
               );
             }),
 
             const Divider(),
 
-            // Feeding Times
             ListTile(
               title: const Text('Feeding Times'),
               subtitle: feedingTimes.isEmpty
